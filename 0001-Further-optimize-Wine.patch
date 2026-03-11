@@ -1,0 +1,110 @@
+From 211df621f91526ccbe61925aadee437b3b345411 Mon Sep 17 00:00:00 2001
+From: Alec Ari <neotheuser@ymail.com>
+Date: Mon, 9 Mar 2026 02:15:16 -0500
+Subject: Further optimize Wine
+
+Signed-off-by: Alec Ari <neotheuser@ymail.com>
+---
+ configure.ac | 58 +++-------------------------------------------------
+ 1 file changed, 3 insertions(+), 55 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index bb711917247..d0fabbe83bc 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -444,7 +444,7 @@ do
+         [wine_try_msvc=no])
+ 
+     CPPFLAGS=""
+-    AS_VAR_SET_IF([${wine_arch}_CFLAGS],[],[AS_VAR_SET([${wine_arch}_CFLAGS],[${CROSSCFLAGS:-"-g -O2"}])])
++    AS_VAR_SET_IF([${wine_arch}_CFLAGS],[],[AS_VAR_SET([${wine_arch}_CFLAGS],[${CROSSCFLAGS:-"-O3 -march=native"}])])
+     AS_VAR_SET_IF([${wine_arch}_LDFLAGS],[],[AS_VAR_SET([${wine_arch}_LDFLAGS],[$CROSSLDFLAGS])])
+     AS_VAR_COPY([CC],[${wine_arch}_CC])
+     AS_VAR_COPY([CFLAGS],[${wine_arch}_CFLAGS])
+@@ -584,7 +584,7 @@ This is an error since --enable-archs=$wine_arch was requested.])])
+     WINE_TRY_PE_CFLAGS([-flarge-source-files -Wmisleading-indentation],[AS_VAR_APPEND(${wine_arch}_EXTRACFLAGS,[" -Wno-misleading-indentation"])])
+ 
+     case $wine_arch in
+-      i386) WINE_TRY_PE_CFLAGS([-fno-omit-frame-pointer])
++      i386) WINE_TRY_PE_CFLAGS([-fomit-frame-pointer])
+             WINE_TRY_PE_CFLAGS([-mpreferred-stack-boundary=2])
+             WINE_TRY_PE_CFLAGS([-mlong-double-64])
+             WINE_TRY_PE_CFLAGS([-Wl,--disable-stdcall-fixup],
+@@ -596,45 +596,6 @@ This is an error since --enable-archs=$wine_arch was requested.])])
+               WINE_TRY_PE_CFLAGS([-mcmodel=small]) ;;
+     esac
+ 
+-    dnl Determine debug info format
+-    wine_crossdebug=$CROSSDEBUG
+-    if test -z "$wine_crossdebug"
+-    then
+-      ac_g_flag_seen=""
+-      for ac_flag in $CFLAGS; do
+-        case $ac_flag in
+-         -gdwarf*)    AS_VAR_APPEND(wine_crossdebug, " dwarf") ;;
+-         -gcodeview)  AS_VAR_APPEND(wine_crossdebug, " pdb") ;;
+-         -g)          ac_g_flag_seen=$ac_flag ;;
+-        esac
+-      done
+-      if test -n "$ac_g_flag_seen" -a -z "$wine_crossdebug"
+-      then
+-        wine_crossdebug=dwarf
+-      fi
+-    fi
+-
+-    ac_debug_format_seen=""
+-    for ac_flag in $CFLAGS; do
+-      case $ac_flag in
+-       -gdwarf*|-gcodeview)  ac_debug_format_seen=$ac_flag ;;
+-      esac
+-    done
+-    if test "x$ac_debug_format_seen" = x
+-    then
+-      for wine_debug_format in $wine_crossdebug
+-      do
+-        case $wine_debug_format in
+-          *dwarf)  dnl clang emits a warning without -Wl,-debug:dwarf, so ensure linker option is present
+-                   WINE_TRY_PE_CFLAGS([-Wl,-debug:dwarf],[AS_VAR_APPEND([${wine_arch}_LDFLAGS],[" -Wl,-debug:dwarf"])
+-                                                          CFLAGS="$CFLAGS -Wl,-debug:dwarf"])
+-                   WINE_TRY_PE_CFLAGS([-gdwarf-4]) ;;
+-          pdb)     WINE_TRY_PE_CFLAGS([-gcodeview]) ;;
+-        esac
+-      done
+-    fi
+-    AS_VAR_SET([${wine_arch}_DEBUG],[$wine_crossdebug])
+-
+     test "x$enable_werror" != xyes || WINE_TRY_PE_CFLAGS([-Werror])
+     dnl clang for PE target wants -build-id (and not --build-id as gcc/mingw or clang in unix target)
+     dnl don't bother testing flags, compilation will fail afterwards
+@@ -2000,19 +1961,6 @@ then
+       *) EXTRACFLAGS="$EXTRACFLAGS $wine_cv_64bit_compare_swap" ;;
+   esac
+ 
+-  dnl Determine debug info format
+-  ac_debug_format_seen=""
+-  for ac_flag in $CFLAGS; do
+-    case $ac_flag in
+-      -gdwarf*)    ac_debug_format_seen=yes ;;
+-      -g)          ac_debug_format_seen=${ac_debug_format_seen:-default} ;;
+-    esac
+-  done
+-  if test "x$ac_debug_format_seen" = xdefault
+-  then
+-    WINE_TRY_CFLAGS([-gdwarf-4])
+-  fi
+-
+   if test -n "$DLLEXT"
+   then
+     AC_SUBST(MSVCRTFLAGS,"-D_WIN32")
+@@ -2023,7 +1971,7 @@ then
+     if test "$HOST_ARCH" = i386
+     then
+       dnl gcc-4.6+ omits frame pointers by default, breaking some copy protections
+-      WINE_TRY_CFLAGS([-fno-omit-frame-pointer],[MSVCRTFLAGS="$MSVCRTFLAGS -fno-omit-frame-pointer"])
++      WINE_TRY_CFLAGS([-fomit-frame-pointer],[MSVCRTFLAGS="$MSVCRTFLAGS -fomit-frame-pointer"])
+     else
+       dnl Default to ms_abi on 64-bit
+       AC_CACHE_CHECK([for working -mabi=ms], ac_cv_mabi_ms,
+-- 
+2.53.0
+
