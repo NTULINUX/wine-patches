@@ -1,6 +1,6 @@
-From 211df621f91526ccbe61925aadee437b3b345411 Mon Sep 17 00:00:00 2001
+From 2e1b2b5f7c9a96c9f07cc3b28f48b55a2aeb70cc Mon Sep 17 00:00:00 2001
 From: Alec Ari <neotheuser@ymail.com>
-Date: Mon, 9 Mar 2026 02:15:16 -0500
+Date: Sat, 28 Mar 2026 17:13:57 -0500
 Subject: Further optimize Wine
 
 Signed-off-by: Alec Ari <neotheuser@ymail.com>
@@ -9,19 +9,19 @@ Signed-off-by: Alec Ari <neotheuser@ymail.com>
  1 file changed, 3 insertions(+), 55 deletions(-)
 
 diff --git a/configure.ac b/configure.ac
-index bb711917247..d0fabbe83bc 100644
+index 9a437851996..3cb5ae67074 100644
 --- a/configure.ac
 +++ b/configure.ac
-@@ -444,7 +444,7 @@ do
+@@ -446,7 +446,7 @@ do
          [wine_try_msvc=no])
  
      CPPFLAGS=""
 -    AS_VAR_SET_IF([${wine_arch}_CFLAGS],[],[AS_VAR_SET([${wine_arch}_CFLAGS],[${CROSSCFLAGS:-"-g -O2"}])])
 +    AS_VAR_SET_IF([${wine_arch}_CFLAGS],[],[AS_VAR_SET([${wine_arch}_CFLAGS],[${CROSSCFLAGS:-"-O3 -march=native"}])])
      AS_VAR_SET_IF([${wine_arch}_LDFLAGS],[],[AS_VAR_SET([${wine_arch}_LDFLAGS],[$CROSSLDFLAGS])])
-     AS_VAR_COPY([CC],[${wine_arch}_CC])
-     AS_VAR_COPY([CFLAGS],[${wine_arch}_CFLAGS])
-@@ -584,7 +584,7 @@ This is an error since --enable-archs=$wine_arch was requested.])])
+     AS_VAR_SET_IF([${wine_arch}_CXX],[],[AS_VAR_COPY([${wine_arch}_CXX],[${wine_arch}_CC])])
+     AS_VAR_SET_IF([${wine_arch}_CXXFLAGS],[],[AS_VAR_COPY([${wine_arch}_CXXFLAGS],[${wine_arch}_CFLAGS])])
+@@ -623,7 +623,7 @@ This is an error since --enable-archs=$wine_arch was requested.])])
      WINE_TRY_PE_CFLAGS([-flarge-source-files -Wmisleading-indentation],[AS_VAR_APPEND(${wine_arch}_EXTRACFLAGS,[" -Wno-misleading-indentation"])])
  
      case $wine_arch in
@@ -30,7 +30,7 @@ index bb711917247..d0fabbe83bc 100644
              WINE_TRY_PE_CFLAGS([-mpreferred-stack-boundary=2])
              WINE_TRY_PE_CFLAGS([-mlong-double-64])
              WINE_TRY_PE_CFLAGS([-Wl,--disable-stdcall-fixup],
-@@ -596,45 +596,6 @@ This is an error since --enable-archs=$wine_arch was requested.])])
+@@ -635,45 +635,6 @@ This is an error since --enable-archs=$wine_arch was requested.])])
                WINE_TRY_PE_CFLAGS([-mcmodel=small]) ;;
      esac
  
@@ -76,7 +76,7 @@ index bb711917247..d0fabbe83bc 100644
      test "x$enable_werror" != xyes || WINE_TRY_PE_CFLAGS([-Werror])
      dnl clang for PE target wants -build-id (and not --build-id as gcc/mingw or clang in unix target)
      dnl don't bother testing flags, compilation will fail afterwards
-@@ -2000,19 +1961,6 @@ then
+@@ -2052,19 +2013,6 @@ then
        *) EXTRACFLAGS="$EXTRACFLAGS $wine_cv_64bit_compare_swap" ;;
    esac
  
@@ -96,7 +96,7 @@ index bb711917247..d0fabbe83bc 100644
    if test -n "$DLLEXT"
    then
      AC_SUBST(MSVCRTFLAGS,"-D_WIN32")
-@@ -2023,7 +1971,7 @@ then
+@@ -2075,7 +2023,7 @@ then
      if test "$HOST_ARCH" = i386
      then
        dnl gcc-4.6+ omits frame pointers by default, breaking some copy protections
